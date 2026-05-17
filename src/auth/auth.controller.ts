@@ -33,7 +33,7 @@ export class AuthController {
     @ApiBearerAuth()
     @Post('logout')
     logout(@Request() req) {
-        return this.authService.logout(req.user?.sub);
+        return this.authService.logout(req.user?.sub, req.user?.jti);
     }
     @ApiBearerAuth()
     @Get('profile')

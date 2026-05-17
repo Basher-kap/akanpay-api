@@ -6,8 +6,13 @@ import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcryptjs';
 import type { StringValue } from 'ms';
 
+import { v4 as uuidv4 } from 'uuid' //for creation of blocklist 
+
 @Injectable()
 export class AuthService {
+    private blocklist = new Set<string>(); //
+
+
     constructor(
         private readonly userService: UserService,
         private jwtService: JwtService,
@@ -55,16 +60,21 @@ export class AuthService {
         return this.issueTokens(user.id, user.username, user.roles || []);
     }
 
-    async logout(userId?: number) {
+    async logout(userId?: number, jti?: string) {
         if (!userId) {
             throw new UnauthorizedException();
         }
+        if (jti) this.blocklist.add(jti); //marks this uuid generated token as blocked
         await this.userService.clearRefreshToken(userId);
         return { success: true };
     }
 
+    isBlocklisted(jti: string): boolean {
+        return this.blocklist.has(jti);
+    }
+
     private async issueTokens(userId: number, username: string, roles: string[]) {
-        const accessPayload = { sub: userId, username, roles };
+        const accessPayload = { sub: userId, username, roles, jti: uuidv4() }; //added as well in payload
         const access_token = await this.jwtService.signAsync(accessPayload);
 
         const refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
