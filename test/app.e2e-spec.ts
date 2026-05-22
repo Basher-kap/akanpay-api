@@ -1,29 +1,45 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { createTestApp } from './create-test-app';
 
-describe('AppController (e2e)', () => {
+describe('App (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  beforeAll(async () => {
+    app = await createTestApp();
   });
 
-  it('/ (GET)', () => {
+  afterAll(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  it('GET /health returns ok', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/health')
       .expect(200)
-      .expect('Hello World!');
+      .expect((res) => {
+        expect(res.body.status).toBe('ok');
+      });
   });
 
-  afterEach(async () => {
-    await app.close();
+  it('GET /health/ready returns database up', () => {
+    return request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.database).toBe('up');
+      });
+  });
+
+  it('GET /v1 returns API info', () => {
+    return request(app.getHttpServer())
+      .get('/v1')
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.name).toBe('Akan Pay API');
+      });
   });
 });

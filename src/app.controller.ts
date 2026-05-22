@@ -1,13 +1,17 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { ApiTags } from '@nestjs/swagger';
 import { Anonymous } from './decorators';
 
+@ApiTags('root')
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
   @Anonymous()
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  getInfo() {
+    return {
+      name: 'Akan Pay API',
+      version: '1.0',
+      docs: '/api',
+    };
   }
 }

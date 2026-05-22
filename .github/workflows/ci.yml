@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, backend-dev]
+  pull_request:
+    branches: [main, backend-dev]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: rootpass
+          POSTGRES_DB: akanpay-test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U root -d akanpay-test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: root
+      DB_PASSWORD: rootpass
+      DB_NAME: akanpay-test
+      DB_SYNC: 'true'
+      DB_MIGRATIONS_RUN: 'false'
+      SWAGGER_ENABLED: 'false'
+      JWT_SECRET: ci-jwt-secret-key-minimum-32-characters
+      JWT_REFRESH_SECRET: ci-jwt-refresh-secret-key-minimum-32-characters
+      CORS_ORIGINS: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run build
+
+      - run: npm test
+
+      - run: npm run test:e2e

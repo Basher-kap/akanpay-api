@@ -15,8 +15,12 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return API info', () => {
+      expect(appController.getInfo()).toEqual({
+        name: 'Akan Pay API',
+        version: '1.0',
+        docs: '/api',
+      });
     });
   });
 });
