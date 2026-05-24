@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Ip,
   Post,
   Request,
 } from '@nestjs/common';
@@ -29,29 +30,29 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: AuthTokensDto })
   @Post('login')
-  login(@Body() signInDto: LoginDto) {
-    return this.authService.signIn(signInDto.IDNumber, signInDto.password);  // pass the IDNumber and password to the service for authentication
+  login(@Body() signInDto: LoginDto, @Ip() ip: string) {
+    return this.authService.signIn(signInDto.IDNumber, signInDto.password, ip);  // pass the IDNumber and password to the service for authentication
   }
 
   @Anonymous()
   @Throttle({ default: { limit: 3, ttl: ONE_MINUTE_MS } })
   @ApiOkResponse({ type: AuthTokensDto })
   @Post('register')
-  register(@Body() createDto: CreateUserDto) {
-    return this.authService.register(createDto);
+  register(@Body() createDto: CreateUserDto, @Ip() ip: string) {
+    return this.authService.register(createDto, ip);
   }
   @Anonymous()
   @Throttle({ default: { limit: 5, ttl: ONE_MINUTE_MS } })
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: AuthTokensDto })
   @Post('refresh')
-  refresh(@Body() refreshDto: RefreshTokenDto) {
-    return this.authService.refresh(refreshDto.refreshToken);
+  refresh(@Body() refreshDto: RefreshTokenDto, @Ip() ip: string) {
+    return this.authService.refresh(refreshDto.refreshToken, ip);
   }
   @ApiBearerAuth()
   @Post('logout')
-  logout(@Request() req) {
-    return this.authService.logout(req.user?.sub);
+  logout(@Request() req, @Ip() ip: string) {
+    return this.authService.logout(req.user?.sub, ip);
   }
   @ApiBearerAuth()
   @Get('profile')

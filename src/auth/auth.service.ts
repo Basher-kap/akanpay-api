@@ -6,6 +6,8 @@ import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
+import { AuditAction } from 'src/entities/audit-log.entity';
+import { AuditLogService } from 'src/audit-log/audit-log.services';
 
 type JwtPayload = {
   sub: number;
@@ -19,19 +21,51 @@ type JwtPayload = {
 export class AuthService {
   constructor(
     private readonly userService: UserService,
+    private readonly auditLogService: AuditLogService, //inject the AuditLogService to log authentication events
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
 
-  async signIn(IDNumber: string, pass: string): Promise<any> {
+  async signIn(IDNumber: string, pass: string, ipAddress?: string): Promise<any> {
     const user = await this.userService.findByIDNumber(IDNumber);  // find the user by their IDNumber 
+
+    //created logs for failed login attempts, etc.
     if (!user) {
+      await this.auditLogService.log({
+        action: AuditAction.LOGIN_FAILED,
+        success: false,
+        userId: null,
+        IDNumber: IDNumber,
+        ipAddress: ipAddress ?? null,
+        details: 'User not found',
+      });
       throw new UnauthorizedException();
     }
+
     const passwordMatches = await bcrypt.compare(pass, user.password);
+    
     if (!passwordMatches) {
+      await this.auditLogService.log({
+        action: AuditAction.LOGIN_FAILED,
+        success: false,
+        userId: user.id,
+        IDNumber: user.IDNumber,
+        ipAddress: ipAddress ?? null,
+        details: 'Invalid password',
+      });
       throw new UnauthorizedException();
     }
+
+    // success — log it
+    await this.auditLogService.log({
+      action: AuditAction.LOGIN_SUCCESS,
+      success: true,
+      userId: user.id,
+      IDNumber: user.IDNumber,
+      ipAddress: ipAddress ?? null,
+      details: null,
+    });
+
     return this.issueTokens(
       user.id,
       user.IDNumber,
@@ -42,8 +76,19 @@ export class AuthService {
     ); //then if the password is correct, issue tokens with the user's IDNumber and other info in the payload
   }
 
-  async register(createDto: CreateUserDto) {
+  async register(createDto: CreateUserDto, ipAddress?: string) {
     const user = await this.userService.create(createDto);
+    
+    // log new registration
+    await this.auditLogService.log({
+      action: AuditAction.REGISTER,
+      success: true,
+      userId: user.id,
+      IDNumber: user.IDNumber,
+      ipAddress: ipAddress ?? null,
+      details: null,
+    });
+    
     return this.issueTokens(
       user.id,
       user.IDNumber,
@@ -54,7 +99,7 @@ export class AuthService {
     );
   }
 
-  async refresh(refreshToken: string) {
+  async refresh(refreshToken: string, ipAddress?: string) {
     const refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
     let payload: JwtPayload;
     try {
@@ -81,6 +126,16 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
+    // log token refresh
+    await this.auditLogService.log({
+      action: AuditAction.TOKEN_REFRESH,
+      success: true,
+      userId: user.id,
+      IDNumber: user.IDNumber,
+      ipAddress: ipAddress ?? null,
+      details: null,
+    });
+
     return this.issueTokens(
       user.id,
       user.IDNumber,
@@ -91,10 +146,23 @@ export class AuthService {
     );
   }
 
-  async logout(userId?: number) {
+  async logout(userId?: number, ipAddress?: string) {
     if (!userId) {
       throw new UnauthorizedException();
     }
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    await this.auditLogService.log({
+      action: AuditAction.LOGOUT,
+      success: true,
+      userId: user.id,
+      IDNumber: user.IDNumber,
+      ipAddress: ipAddress ?? null,
+      details: null,
+    });
+    
     await this.userService.incrementTokenVersion(userId);
     await this.userService.clearRefreshToken(userId);
     return { success: true };

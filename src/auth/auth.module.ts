@@ -7,10 +7,12 @@ import { ConfigService } from '@nestjs/config';
 import type { StringValue } from 'ms';
 
 import { AuthGuard } from './auth.guard';
+import { AuditLogModule } from 'src/audit-log/audit-log.module';
 
 @Module({
   imports: [
     UserModule,
+    AuditLogModule, //import the AuditLogModule so we can use the AuditLogService in AuthService
     JwtModule.registerAsync({
       global: true,
       inject: [ConfigService],

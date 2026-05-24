@@ -8,10 +8,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './guards';
 import { AuthGuard } from './auth/auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './entities';
+import { AuditLog, User } from './entities';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -80,7 +81,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
           username: config.getOrThrow<string>('DB_USER'),
           password: config.getOrThrow<string>('DB_PASSWORD'),
           database: config.getOrThrow<string>('DB_NAME'),
-          entities: [User],
+          entities: [User, AuditLog],
           synchronize: dbSync,
           migrations: ['dist/migrations/*.js'],
           migrationsRun: migrationsRun && !dbSync,
@@ -90,6 +91,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
     UserModule,
     AuthModule,
     HealthModule,
+    AuditLogModule, //add the AuditLogModule to the imports array so we can use the AuditLogService in our AuthService and controllers
   ],
   controllers: [AppController],
   providers: [
