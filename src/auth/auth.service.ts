@@ -7,7 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import { AuditAction } from 'src/entities/audit-log.entity';
-import { AuditLogService } from 'src/audit-log/audit-log.services';
+import { AuditLogService } from 'src/audit-log/audit-log.service';
 
 type JwtPayload = {
   sub: number;
